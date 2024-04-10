@@ -8,7 +8,9 @@ A Merkle tree, is a tree in which each leaf node is labeled with the cryptograph
 
 ## Usage
 
-TODO
+Run the following command to execute the tests:
+
+`cargo test`
 
 ## References
 
