@@ -1,7 +1,17 @@
 use super::hasher;
+pub enum CustomError{
+    DataNotInTree
+}
 
 pub struct MerkleTree {
     leafs: Vec<String>
+}
+
+pub struct Proof {
+    index: usize,
+    proofs: Vec<String>,
+    root: String,
+    leaf: String
 }
 
 pub fn construct_merkle_tree(data: Vec<String>) -> MerkleTree{
@@ -32,6 +42,31 @@ pub fn calculate_root(tree: MerkleTree) -> String{
     } else {
         calculate_root(MerkleTree{leafs:level})
     }
+}
+
+pub fn generate_proof(tree: MerkleTree, data: String) -> Result<Proof,CustomError> {
+    let leaf = hasher::hash(data);
+    let root = calculate_root(tree);
+    let index = match tree.leafs.iter().position(|&r| r == leaf) {
+        Some(i) => i,
+        None => {return Err(CustomError::DataNotInTree)}
+    };
+
+    let mut size = tree.leafs.len();
+    let mut current_index = index;
+    let proofs: Vec<usize> = vec![];
+    while size > 1 {
+        if current_index % 2 == 0 {
+            proofs.push(current_index + 1);
+        } else {
+            proofs.push(current_index - 1);
+        }
+        size = size / 2;
+        current_index = current_index / 2;
+    }
+    // TODO: get actual hashes for proofs from indexes
+
+    Ok(Proof{index,proofs,root,leaf})
 }
 
 fn power_of_two(x:usize) -> bool {
