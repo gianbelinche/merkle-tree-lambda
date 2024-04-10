@@ -1,3 +1,5 @@
+mod hasher;
+
 fn main() {
-    println!("Hello, world!");
+    println!("{}",hasher::hash("Hello".to_string()));
 }
