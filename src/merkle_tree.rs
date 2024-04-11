@@ -31,14 +31,7 @@ pub fn calculate_root(tree: &MerkleTree) -> String{
         panic!("Not power of 2") // This will be eliminated
     } 
 
-    let mut level: Vec<String> = vec![];
-    let mut i = 0;
-    while i < tree.leafs.len() {
-        let left_leaf = &tree.leafs[i];
-        let right_leaf = &tree.leafs[i+1];
-        level.push(hasher::hash(left_leaf.to_owned() + &*right_leaf));
-        i += 2;
-    }
+    let level = get_next_level(&tree.leafs);
 
     if level.len() == 1 {
         level[0].to_string()
@@ -81,20 +74,25 @@ fn get_actual_proofs(tree: MerkleTree, indexes: Vec<usize>) -> Vec<String> {
     proofs.push(tree_leafs[indexes[0]].to_string());
 
     for index in indexes.iter().skip(1) {
-        let mut level: Vec<String> = vec![];
-        let mut i = 0;
-        while i < tree_leafs.len() {
-            let left_leaf = &tree_leafs[i];
-            let right_leaf = &tree_leafs[i+1];
-            level.push(hasher::hash(left_leaf.to_owned() + &*right_leaf));
-            i += 2;
-        }
+        let level = get_next_level(&tree_leafs);
         proofs.push(level[*index].to_string());
 
         tree_leafs = level.clone();
     }
 
     proofs
+}
+
+fn get_next_level(tree_leafs: &Vec<String>) -> Vec<String> {
+    let mut level: Vec<String> = vec![];
+    let mut i = 0;
+    while i < tree_leafs.len() {
+        let left_leaf = &tree_leafs[i];
+        let right_leaf = &tree_leafs[i+1];
+        level.push(hasher::hash(left_leaf.to_owned() + &*right_leaf));
+        i += 2;
+    }
+    level
 }
 
 fn power_of_two(x:usize) -> bool {
