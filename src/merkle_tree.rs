@@ -40,7 +40,7 @@ pub fn calculate_root(tree: &MerkleTree) -> String{
     }
 }
 
-pub fn generate_proof(tree: MerkleTree, data: String) -> Result<Proof,CustomError> {
+pub fn generate_proof(tree: &MerkleTree, data: String) -> Result<Proof,CustomError> {
     let leaf = hasher::hash(data);
     let root = calculate_root(&tree);
     let index = match tree.leafs.iter().position(|r| *r == leaf) {
@@ -64,7 +64,21 @@ pub fn generate_proof(tree: MerkleTree, data: String) -> Result<Proof,CustomErro
     Ok(Proof{index,proofs,root,leaf})
 }
 
-fn get_actual_proofs(tree: MerkleTree, indexes: Vec<usize>) -> Vec<String> {
+pub fn verify_proof(tree: &MerkleTree, proof: &Proof) -> bool {
+    let mut current_hash = tree.leafs[proof.index].to_string();
+    let mut proof_index = proof.index;
+    for hash in &proof.proofs {
+        if proof_index % 2 == 0{
+            current_hash = hasher::hash(current_hash + &hash);
+        } else {
+            current_hash = hasher::hash(hash.to_owned() + &current_hash);
+        }
+        proof_index = proof_index / 2;
+    }
+    current_hash == proof.root
+}
+
+fn get_actual_proofs(tree: &MerkleTree, indexes: Vec<usize>) -> Vec<String> {
     if !power_of_two(tree.leafs.len()) {
         panic!("Not power of 2") // This will be eliminated
     } 
@@ -103,7 +117,7 @@ fn power_of_two(x:usize) -> bool {
 mod tests {
     use crate::merkle_tree::calculate_root;
 
-    use super::{construct_merkle_tree, Proof,generate_proof};
+    use super::{construct_merkle_tree, generate_proof, verify_proof, Proof};
 
     use crate::merkle_tree::CustomError;
 
@@ -146,7 +160,7 @@ mod tests {
         ];
         let actual_proof = Proof{index:1,root,leaf,proofs};
 
-        let proof = generate_proof(tree,"leaf2".to_string()).unwrap();
+        let proof = generate_proof(&tree,"leaf2".to_string()).unwrap();
 
         assert_eq!(actual_proof,proof);
     }
@@ -157,7 +171,7 @@ mod tests {
 
         let tree = construct_merkle_tree(leafs);
 
-        assert_eq!(generate_proof(tree, "leaf5".to_string()),Err(CustomError::DataNotInTree));
+        assert_eq!(generate_proof(&tree, "leaf5".to_string()),Err(CustomError::DataNotInTree));
     }
 
     #[test]
@@ -191,8 +205,88 @@ mod tests {
         ];
         let actual_proof = Proof{index:4,root,leaf,proofs};
 
-        let proof = generate_proof(tree,"leaf5".to_string()).unwrap();
+        let proof = generate_proof(&tree,"leaf5".to_string()).unwrap();
 
         assert_eq!(actual_proof,proof);
+    }
+
+    #[test]
+    fn test_correct_verify_proof() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string(),"leaf4".to_string()];
+
+        let tree = construct_merkle_tree(leafs);
+
+        let root = "89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9".to_string();
+        let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
+        let proofs = vec![
+            "036491cc10808eeb0ff717314df6f19ba2e232d04d5f039f6fa382cae41641da".to_string(),
+            "1263c6ae9a0abc50f3516d6f4c60fc4d42b3366c93210b63d12a135784ac7b83".to_string()
+        ];
+        let index = 1;
+
+        let proof = Proof {index, proofs, root, leaf};
+
+
+        assert!(verify_proof(&tree, &proof));
+    }
+
+    #[test]
+    fn test_wrong_verify_proof_1() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string(),"leaf4".to_string()];
+
+        let tree = construct_merkle_tree(leafs);
+
+        let root = "89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9".to_string();
+        let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
+        let proofs = vec![
+            "bad_proof".to_string(),
+            "1263c6ae9a0abc50f3516d6f4c60fc4d42b3366c93210b63d12a135784ac7b83".to_string()
+        ];
+        let index = 1;
+
+        let proof = Proof {index, proofs, root, leaf};
+
+
+        assert!(!verify_proof(&tree, &proof));
+    }
+
+    #[test]
+    fn test_wrong_verify_proof_2() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string(),"leaf4".to_string()];
+
+        let tree = construct_merkle_tree(leafs);
+
+        let root = "89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9".to_string();
+        let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
+        let proofs = vec![
+            "036491cc10808eeb0ff717314df6f19ba2e232d04d5f039f6fa382cae41641da".to_string(),
+            "wrong_proof".to_string()
+        ];
+        let index = 1;
+
+        let proof = Proof {index, proofs, root, leaf};
+
+
+        assert!(!verify_proof(&tree, &proof));
+    }
+
+    #[test]
+    fn test_wrong_verify_proof_3() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string(),"leaf4".to_string()];
+
+        let tree = construct_merkle_tree(leafs);
+
+        let root = "wrong_root".to_string();
+        let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
+        let proofs = vec![
+            "036491cc10808eeb0ff717314df6f19ba2e232d04d5f039f6fa382cae41641da".to_string(),
+            "1263c6ae9a0abc50f3516d6f4c60fc4d42b3366c93210b63d12a135784ac7b83".to_string()
+        ];
+        let index = 1;
+
+        let proof = Proof {index, proofs, root, leaf};
+
+
+        assert!(!verify_proof(&tree, &proof));
     }
 }
