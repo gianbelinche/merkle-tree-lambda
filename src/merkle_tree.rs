@@ -67,7 +67,6 @@ pub fn generate_proof(tree: MerkleTree, data: String) -> Result<Proof,CustomErro
         size = size / 2;
         current_index = current_index / 2;
     }
-    // TODO: get actual hashes for proofs from indexes
     let proofs = get_actual_proofs(tree,proofs_indexes);
     Ok(Proof{index,proofs,root,leaf})
 }
