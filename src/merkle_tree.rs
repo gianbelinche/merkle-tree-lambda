@@ -83,6 +83,17 @@ pub fn verify_proof(tree: &MerkleTree, proof: &Proof) -> bool {
     current_hash == proof.root
 }
 
+// Adds a new element to the merkle tree
+pub fn add_element(tree: &mut MerkleTree, element: String) {
+    tree.leafs.push(hasher::hash(element));
+}
+
+// Removes an element from the merkle tree
+pub fn remove_element(tree: &mut MerkleTree, element: String) {
+    let index = tree.leafs.iter().position(|x| *x == element).unwrap();
+    tree.leafs.remove(index);
+}
+
 // Given a list of indexes for each level of the tree, it returns the hashes of the elements in those indexes
 fn get_actual_proofs(tree: &MerkleTree, indexes: Vec<usize>) -> Vec<String> {
     let mut proofs: Vec<String> = vec![];
@@ -121,7 +132,7 @@ fn get_next_level(tree_leafs: &Vec<String>) -> Vec<String> {
 mod tests {
     use crate::merkle_tree::calculate_root;
 
-    use super::{construct_merkle_tree, generate_proof, verify_proof, Proof};
+    use super::{add_element, construct_merkle_tree, generate_proof, verify_proof, Proof};
 
     use crate::merkle_tree::CustomError;
 
@@ -399,6 +410,28 @@ mod tests {
             "wrong".to_string()
         ];
         let proof = Proof{index:2,root,leaf,proofs};
+
+        assert!(!verify_proof(&tree, &proof));
+    }
+
+    #[test]
+    fn test_add_element(){
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string()];
+        let mut tree = construct_merkle_tree(leafs);
+        add_element(&mut tree, "leaf4".to_string());
+
+        let proof = generate_proof(&tree,"leaf4".to_string()).unwrap();
+
+        assert!(verify_proof(&tree, &proof));
+    }
+
+    #[test]
+    fn test_remove_element(){
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string(),"leaf4".to_string()];
+        let mut tree = construct_merkle_tree(leafs);
+        add_element(&mut tree, "leaf3".to_string());
+
+        let proof = generate_proof(&tree,"leaf3".to_string()).unwrap();
 
         assert!(!verify_proof(&tree, &proof));
     }
