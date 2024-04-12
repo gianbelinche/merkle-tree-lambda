@@ -49,7 +49,12 @@ pub fn generate_proof(tree: &MerkleTree, data: String) -> Result<Proof,CustomErr
     let mut proofs_indexes: Vec<usize> = vec![];
     while size > 1 {
         if current_index % 2 == 0 {
-            proofs_indexes.push(current_index + 1);
+            if current_index + 1 >= size {
+                proofs_indexes.push(current_index);
+                size += 1;
+            } else {
+                proofs_indexes.push(current_index + 1);
+            }
         } else {
             proofs_indexes.push(current_index - 1);
         }
@@ -64,7 +69,7 @@ pub fn verify_proof(tree: &MerkleTree, proof: &Proof) -> bool {
     let mut current_hash = tree.leafs[proof.index].to_string();
     let mut proof_index = proof.index;
     for hash in &proof.proofs {
-        if proof_index % 2 == 0{
+        if proof_index % 2 == 0{ 
             current_hash = hasher::hash(current_hash + &hash);
         } else {
             current_hash = hasher::hash(hash.to_owned() + &current_hash);
@@ -75,10 +80,6 @@ pub fn verify_proof(tree: &MerkleTree, proof: &Proof) -> bool {
 }
 
 fn get_actual_proofs(tree: &MerkleTree, indexes: Vec<usize>) -> Vec<String> {
-    if !power_of_two(tree.leafs.len()) {
-        panic!("Not power of 2") // This will be eliminated
-    } 
-
     let mut proofs: Vec<String> = vec![];
     let mut tree_leafs = tree.leafs.clone();
     proofs.push(tree_leafs[indexes[0]].to_string());
@@ -108,10 +109,6 @@ fn get_next_level(tree_leafs: &Vec<String>) -> Vec<String> {
         i += 2;
     }
     level
-}
-
-fn power_of_two(x:usize) -> bool {
-    (x & (x - 1)) == 0
 }
 
 #[cfg(test)]
@@ -311,5 +308,58 @@ mod tests {
         let merkle_tree = construct_merkle_tree(leafs);
 
         assert_eq!{calculated_root,calculate_root(&merkle_tree)};
+    }
+
+    #[test]
+    fn test_generate_proofs_not_power_of_2() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string()];
+
+        let tree = construct_merkle_tree(leafs);
+
+        let root = "89e9c0c63b9dd1f3c79a58ff99936a79b282dceb7008ed43d6ee36c8e8ded370".to_string();
+        let leaf = "fdd1f2a1ec75fe968421a41d2282200de6bec6a21f81080a71b1053d9c0120f3".to_string();
+        let proofs = vec![
+            "fdd1f2a1ec75fe968421a41d2282200de6bec6a21f81080a71b1053d9c0120f3".to_string(),
+            "a8ad19d0c66c907e56aa4334e8189f10f65c0edaa0498f77539379d58f10ca8f".to_string()
+        ];
+        let actual_proof = Proof{index:2,root,leaf,proofs};
+
+        let proof = generate_proof(&tree,"leaf3".to_string()).unwrap();
+        assert_eq!(actual_proof,proof);
+    }
+
+    #[test]
+    fn test_generate_complex_proofs_not_power_of_two() {
+        /*
+            Merkle tree
+
+            b81447ac40836eaa9b78cd024952d096d6aa8f6e6e39415f021a7d85097b4d54
+
+            89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9 - 588d0604265a2dcf9136210d90eb8b6f93df99e7d845f7e0d687660deac71bda
+
+            a8ad19d0c66c907e56aa4334e8189f10f65c0edaa0498f77539379d58f10ca8f - 1263c6ae9a0abc50f3516d6f4c60fc4d42b3366c93210b63d12a135784ac7b83
+            4ff7c87454e2b312240e45e24281f77cdd7940ab628f4f8e11c07ef9d9f7bce6 - 4ff7c87454e2b312240e45e24281f77cdd7940ab628f4f8e11c07ef9d9f7bce6
+
+            036491cc10808eeb0ff717314df6f19ba2e232d04d5f039f6fa382cae41641da - ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8 
+            fdd1f2a1ec75fe968421a41d2282200de6bec6a21f81080a71b1053d9c0120f3 - 157c9118369926e028fa6cf8dfe68c750c1adbd7b0e4918c2b3a23fe4017c732 
+            075b8504c98679ed33a097ef9b1466e8f4652142d4b19ab2c37fdf1668a65c86 - 075b8504c98679ed33a097ef9b1466e8f4652142d4b19ab2c37fdf1668a65c86 
+        */
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string(),"leaf4".to_string(),
+                                      "leaf5".to_string()];
+
+        let tree = construct_merkle_tree(leafs);
+
+        let root = "b81447ac40836eaa9b78cd024952d096d6aa8f6e6e39415f021a7d85097b4d54".to_string();
+        let leaf = "075b8504c98679ed33a097ef9b1466e8f4652142d4b19ab2c37fdf1668a65c86".to_string();
+        let proofs = vec![
+            "075b8504c98679ed33a097ef9b1466e8f4652142d4b19ab2c37fdf1668a65c86".to_string(),
+            "4ff7c87454e2b312240e45e24281f77cdd7940ab628f4f8e11c07ef9d9f7bce6".to_string(),
+            "89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9".to_string()
+        ];
+        let actual_proof = Proof{index:4,root,leaf,proofs};
+
+        let proof = generate_proof(&tree,"leaf5".to_string()).unwrap();
+
+        assert_eq!(actual_proof,proof);
     }
 }
