@@ -368,4 +368,38 @@ mod tests {
 
         assert_eq!(actual_proof,proof);
     }
+
+    #[test]
+    fn test_correct_verify_proof_not_power_of_two() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string()];
+
+        let tree = construct_merkle_tree(leafs);
+
+        let root = "89e9c0c63b9dd1f3c79a58ff99936a79b282dceb7008ed43d6ee36c8e8ded370".to_string();
+        let leaf = "fdd1f2a1ec75fe968421a41d2282200de6bec6a21f81080a71b1053d9c0120f3".to_string();
+        let proofs = vec![
+            "fdd1f2a1ec75fe968421a41d2282200de6bec6a21f81080a71b1053d9c0120f3".to_string(),
+            "a8ad19d0c66c907e56aa4334e8189f10f65c0edaa0498f77539379d58f10ca8f".to_string()
+        ];
+        let proof = Proof{index:2,root,leaf,proofs};
+
+        assert!(verify_proof(&tree, &proof));
+    }
+
+    #[test]
+    fn test_wrong_verify_proof_not_power_of_two() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string()];
+
+        let tree = construct_merkle_tree(leafs);
+
+        let root = "89e9c0c63b9dd1f3c79a58ff99936a79b282dceb7008ed43d6ee36c8e8ded370".to_string();
+        let leaf = "fdd1f2a1ec75fe968421a41d2282200de6bec6a21f81080a71b1053d9c0120f3".to_string();
+        let proofs = vec![
+            "fdd1f2a1ec75fe968421a41d2282200de6bec6a21f81080a71b1053d9c0120f3".to_string(),
+            "wrong".to_string()
+        ];
+        let proof = Proof{index:2,root,leaf,proofs};
+
+        assert!(!verify_proof(&tree, &proof));
+    }
 }
