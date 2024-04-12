@@ -27,10 +27,6 @@ pub fn construct_merkle_tree(data: Vec<String>) -> MerkleTree{
 }
 
 pub fn calculate_root(tree: &MerkleTree) -> String{
-    if !power_of_two(tree.leafs.len()) {
-        panic!("Not power of 2") // This will be eliminated
-    } 
-
     let level = get_next_level(&tree.leafs);
 
     if level.len() == 1 {
@@ -102,7 +98,12 @@ fn get_next_level(tree_leafs: &Vec<String>) -> Vec<String> {
     let mut i = 0;
     while i < tree_leafs.len() {
         let left_leaf = &tree_leafs[i];
-        let right_leaf = &tree_leafs[i+1];
+        let right_leaf;
+        if i + 1 >= tree_leafs.len() {
+            right_leaf = &tree_leafs[i];
+        } else {
+            right_leaf = &tree_leafs[i+1];
+        }
         level.push(hasher::hash(left_leaf.to_owned() + &*right_leaf));
         i += 2;
     }
@@ -288,5 +289,27 @@ mod tests {
 
 
         assert!(!verify_proof(&tree, &proof));
+    }
+
+    #[test]
+    fn test_calculate_root_not_power_of_two() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string()];
+
+        let calculated_root = "89e9c0c63b9dd1f3c79a58ff99936a79b282dceb7008ed43d6ee36c8e8ded370";
+
+        let merkle_tree = construct_merkle_tree(leafs);
+
+        assert_eq!{calculated_root,calculate_root(&merkle_tree)};
+    }
+
+    #[test]
+    fn test_calculate_root_not_power_of_two_2() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string(),"leaf4".to_string(),"leaf5".to_string()];
+
+        let calculated_root = "b81447ac40836eaa9b78cd024952d096d6aa8f6e6e39415f021a7d85097b4d54";
+
+        let merkle_tree = construct_merkle_tree(leafs);
+
+        assert_eq!{calculated_root,calculate_root(&merkle_tree)};
     }
 }
