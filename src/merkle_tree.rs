@@ -27,7 +27,7 @@ pub fn construct_merkle_tree(data: Vec<String>) -> MerkleTree{
     MerkleTree{leafs}
 }
 
-// Calculates de root of the merkle tree
+// Calculates the root of the merkle tree
 pub fn calculate_root(tree: &MerkleTree) -> String{
     let level = get_next_level(&tree.leafs);
 
@@ -70,6 +70,9 @@ pub fn generate_proof(tree: &MerkleTree, data: String) -> Result<Proof,CustomErr
 
 // Given a proof, it verifies is the element inside it is in the merkle tree
 pub fn verify_proof(tree: &MerkleTree, proof: &Proof) -> bool {
+    if proof.index >= tree.leafs.len() {
+        return false;
+    }
     let mut current_hash = tree.leafs[proof.index].to_string();
     let mut proof_index = proof.index;
     for hash in &proof.proofs {
@@ -432,6 +435,26 @@ mod tests {
         add_element(&mut tree, "leaf3".to_string());
 
         let proof = generate_proof(&tree,"leaf3".to_string()).unwrap();
+
+        assert!(!verify_proof(&tree, &proof));
+    }
+
+    #[test]
+    fn test_verify_proof_index_out_of_range() {
+        let leafs = vec!["leaf1".to_string(),"leaf2".to_string(),"leaf3".to_string(),"leaf4".to_string()];
+
+        let tree = construct_merkle_tree(leafs);
+
+        let root = "89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9".to_string();
+        let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
+        let proofs = vec![
+            "036491cc10808eeb0ff717314df6f19ba2e232d04d5f039f6fa382cae41641da".to_string(),
+            "1263c6ae9a0abc50f3516d6f4c60fc4d42b3366c93210b63d12a135784ac7b83".to_string()
+        ];
+        let index = 4;
+
+        let proof = Proof {index, proofs, root, leaf};
+
 
         assert!(!verify_proof(&tree, &proof));
     }
