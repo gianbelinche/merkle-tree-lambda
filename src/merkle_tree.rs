@@ -4,11 +4,11 @@ use super::hasher;
 pub enum CustomError{
     DataNotInTree
 }
-
 pub struct MerkleTree {
     leafs: Vec<String>
 }
 
+// Represents the necessary elements to prove that something is in the Merkle Tree
 #[derive(PartialEq,Eq,Debug)]
 pub struct Proof {
     index: usize,
@@ -17,6 +17,7 @@ pub struct Proof {
     leaf: String
 }
 
+// Returns a new merkle tree based on string data
 pub fn construct_merkle_tree(data: Vec<String>) -> MerkleTree{
     let mut leafs: Vec<String> = vec![];
     for value in data {
@@ -26,6 +27,7 @@ pub fn construct_merkle_tree(data: Vec<String>) -> MerkleTree{
     MerkleTree{leafs}
 }
 
+// Calculates de root of the merkle tree
 pub fn calculate_root(tree: &MerkleTree) -> String{
     let level = get_next_level(&tree.leafs);
 
@@ -36,6 +38,7 @@ pub fn calculate_root(tree: &MerkleTree) -> String{
     }
 }
 
+// Generates the necessary proof to know if an element is in the tree
 pub fn generate_proof(tree: &MerkleTree, data: String) -> Result<Proof,CustomError> {
     let leaf = hasher::hash(data);
     let root = calculate_root(&tree);
@@ -65,6 +68,7 @@ pub fn generate_proof(tree: &MerkleTree, data: String) -> Result<Proof,CustomErr
     Ok(Proof{index,proofs,root,leaf})
 }
 
+// Given a proof, it verifies is the element inside it is in the merkle tree
 pub fn verify_proof(tree: &MerkleTree, proof: &Proof) -> bool {
     let mut current_hash = tree.leafs[proof.index].to_string();
     let mut proof_index = proof.index;
@@ -79,6 +83,7 @@ pub fn verify_proof(tree: &MerkleTree, proof: &Proof) -> bool {
     current_hash == proof.root
 }
 
+// Given a list of indexes for each level of the tree, it returns the hashes of the elements in those indexes
 fn get_actual_proofs(tree: &MerkleTree, indexes: Vec<usize>) -> Vec<String> {
     let mut proofs: Vec<String> = vec![];
     let mut tree_leafs = tree.leafs.clone();
@@ -94,6 +99,7 @@ fn get_actual_proofs(tree: &MerkleTree, indexes: Vec<usize>) -> Vec<String> {
     proofs
 }
 
+// Returns the next level of the tree
 fn get_next_level(tree_leafs: &Vec<String>) -> Vec<String> {
     let mut level: Vec<String> = vec![];
     let mut i = 0;
