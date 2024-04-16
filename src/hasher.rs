@@ -1,6 +1,6 @@
 use sha3::{Digest, Keccak256};
-use hex;
 
+/// Hashes a string using Keccak256
 pub fn hash(data: String) -> String {
     let mut hasher = Keccak256::new();
 
