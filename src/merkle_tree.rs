@@ -1,9 +1,7 @@
 use super::hasher;
 
 #[derive(Debug,PartialEq,Eq)]
-pub enum CustomError{
-    DataNotInTree
-}
+pub struct DataNotInTree{}
 pub struct MerkleTree {
     leafs: Vec<String>
 }
@@ -41,12 +39,12 @@ impl MerkleTree {
     }
 
     // Generates the necessary proof to know if an element is in the tree
-    pub fn generate_proof(&self, data: String) -> Result<Proof,CustomError> {
+    pub fn generate_proof(&self, data: String) -> Result<Proof,DataNotInTree> {
         let leaf = hasher::hash(data);
         let root = self.calculate_root();
         let index = match self.leafs.iter().position(|r| *r == leaf) {
             Some(i) => i,
-            None => {return Err(CustomError::DataNotInTree)}
+            None => {return Err(DataNotInTree{})}
         };
 
         let mut size = self.leafs.len();
@@ -137,7 +135,7 @@ fn get_next_level(tree_leafs: &Vec<String>) -> Vec<String> {
 mod tests {
     use super::{construct_merkle_tree, Proof};
 
-    use crate::merkle_tree::CustomError;
+    use crate::merkle_tree::DataNotInTree;
 
     #[test]
     fn test_merkle_tree_construction() {
@@ -189,7 +187,7 @@ mod tests {
 
         let tree = construct_merkle_tree(leafs);
 
-        assert_eq!(tree.generate_proof("leaf5".to_string()),Err(CustomError::DataNotInTree));
+        assert_eq!(tree.generate_proof("leaf5".to_string()),Err(DataNotInTree{}));
     }
 
     #[test]
