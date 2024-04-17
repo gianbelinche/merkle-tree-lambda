@@ -73,24 +73,6 @@ impl MerkleTree {
         })
     }
 
-    /// Given a proof, it verifies is the element inside it is in the merkle tree
-    pub fn verify_proof(&self, proof: &Proof) -> bool {
-        if proof.index >= self.leafs.len() {
-            return false;
-        }
-        let mut current_hash = self.leafs[proof.index].to_string();
-        let mut proof_index = proof.index;
-        for hash in &proof.proofs {
-            if proof_index % 2 == 0 {
-                current_hash = hasher::hash(current_hash + &hash);
-            } else {
-                current_hash = hasher::hash(hash.to_owned() + &current_hash);
-            }
-            proof_index /= 2;
-        }
-        current_hash == proof.root
-    }
-
     /// Adds a new element to the merkle tree
     pub fn add_element(&mut self, element: String) {
         self.leafs.push(hasher::hash(element));
@@ -98,30 +80,45 @@ impl MerkleTree {
     /// Removes an element from the merkle tree
     pub fn remove_element(&mut self, element: String) {
         let index = self
-            .leafs
-            .iter()
-            .position(|x| *x == hasher::hash(element.to_string()))
-            .unwrap();
-        self.leafs.remove(index);
-    }
-
-    // Given a list of indexes for each level of the tree, it returns the hashes of the elements in those indexes
-    fn get_actual_proofs(&self, indexes: Vec<usize>) -> Vec<String> {
-        let mut proofs: Vec<String> = vec![];
-        let mut tree_leafs = self.leafs.clone();
-        proofs.push(tree_leafs[indexes[0]].to_string());
-
-        for index in indexes.iter().skip(1) {
-            let level = get_next_level(&tree_leafs);
-            proofs.push(level[*index].to_string());
-
-            tree_leafs = level.clone();
-        }
-
-        proofs
-    }
+        .leafs
+        .iter()
+        .position(|x| *x == hasher::hash(element.to_string()))
+        .unwrap();
+    self.leafs.remove(index);
 }
 
+
+// Given a list of indexes for each level of the tree, it returns the hashes of the elements in those indexes
+fn get_actual_proofs(&self, indexes: Vec<usize>) -> Vec<String> {
+    let mut proofs: Vec<String> = vec![];
+    let mut tree_leafs = self.leafs.clone();
+    proofs.push(tree_leafs[indexes[0]].to_string());
+    
+    for index in indexes.iter().skip(1) {
+        let level = get_next_level(&tree_leafs);
+        proofs.push(level[*index].to_string());
+        
+        tree_leafs = level.clone();
+    }
+    
+    proofs
+}
+}
+
+/// Given a proof, it verifies is the element inside it is in the merkle tree
+pub fn verify_proof(proof: &Proof) -> bool {
+    let mut current_hash = proof.leaf.to_owned();
+    let mut proof_index = proof.index;
+    for hash in &proof.proofs {
+        if proof_index % 2 == 0 {
+            current_hash = hasher::hash(current_hash + &hash);
+        } else {
+            current_hash = hasher::hash(hash.to_owned() + &current_hash);
+        }
+        proof_index /= 2;
+    }
+    current_hash == proof.root
+}
 // Returns the next level of the tree
 fn get_next_level(tree_leafs: &[String]) -> Vec<String> {
     let mut level: Vec<String> = vec![];
@@ -141,10 +138,9 @@ fn get_next_level(tree_leafs: &[String]) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{construct_merkle_tree, Proof};
+    use super::{construct_merkle_tree, Proof,verify_proof};
 
     use crate::merkle_tree::DataNotInTree;
-
     #[test]
     fn test_merkle_tree_construction() {
         let leafs = vec![
@@ -277,14 +273,6 @@ mod tests {
 
     #[test]
     fn test_correct_verify_proof() {
-        let leafs = vec![
-            "leaf1".to_string(),
-            "leaf2".to_string(),
-            "leaf3".to_string(),
-            "leaf4".to_string(),
-        ];
-
-        let tree = construct_merkle_tree(leafs);
 
         let root = "89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9".to_string();
         let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
@@ -301,19 +289,11 @@ mod tests {
             leaf,
         };
 
-        assert!(tree.verify_proof(&proof));
+        assert!(verify_proof(&proof));
     }
 
     #[test]
     fn test_wrong_verify_proof_1() {
-        let leafs = vec![
-            "leaf1".to_string(),
-            "leaf2".to_string(),
-            "leaf3".to_string(),
-            "leaf4".to_string(),
-        ];
-
-        let tree = construct_merkle_tree(leafs);
 
         let root = "89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9".to_string();
         let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
@@ -330,19 +310,11 @@ mod tests {
             leaf,
         };
 
-        assert!(!tree.verify_proof(&proof));
+        assert!(!verify_proof(&proof));
     }
 
     #[test]
     fn test_wrong_verify_proof_2() {
-        let leafs = vec![
-            "leaf1".to_string(),
-            "leaf2".to_string(),
-            "leaf3".to_string(),
-            "leaf4".to_string(),
-        ];
-
-        let tree = construct_merkle_tree(leafs);
 
         let root = "89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9".to_string();
         let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
@@ -359,19 +331,11 @@ mod tests {
             leaf,
         };
 
-        assert!(!tree.verify_proof(&proof));
+        assert!(!verify_proof(&proof));
     }
 
     #[test]
     fn test_wrong_verify_proof_3() {
-        let leafs = vec![
-            "leaf1".to_string(),
-            "leaf2".to_string(),
-            "leaf3".to_string(),
-            "leaf4".to_string(),
-        ];
-
-        let tree = construct_merkle_tree(leafs);
 
         let root = "wrong_root".to_string();
         let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
@@ -388,7 +352,7 @@ mod tests {
             leaf,
         };
 
-        assert!(!tree.verify_proof(&proof));
+        assert!(!verify_proof(&proof));
     }
 
     #[test]
@@ -497,13 +461,6 @@ mod tests {
 
     #[test]
     fn test_correct_verify_proof_not_power_of_two() {
-        let leafs = vec![
-            "leaf1".to_string(),
-            "leaf2".to_string(),
-            "leaf3".to_string(),
-        ];
-
-        let tree = construct_merkle_tree(leafs);
 
         let root = "89e9c0c63b9dd1f3c79a58ff99936a79b282dceb7008ed43d6ee36c8e8ded370".to_string();
         let leaf = "fdd1f2a1ec75fe968421a41d2282200de6bec6a21f81080a71b1053d9c0120f3".to_string();
@@ -518,19 +475,11 @@ mod tests {
             proofs,
         };
 
-        assert!(tree.verify_proof(&proof));
+        assert!(verify_proof(&proof));
     }
 
     #[test]
     fn test_wrong_verify_proof_not_power_of_two() {
-        let leafs = vec![
-            "leaf1".to_string(),
-            "leaf2".to_string(),
-            "leaf3".to_string(),
-        ];
-
-        let tree = construct_merkle_tree(leafs);
-
         let root = "89e9c0c63b9dd1f3c79a58ff99936a79b282dceb7008ed43d6ee36c8e8ded370".to_string();
         let leaf = "fdd1f2a1ec75fe968421a41d2282200de6bec6a21f81080a71b1053d9c0120f3".to_string();
         let proofs = vec![
@@ -544,7 +493,7 @@ mod tests {
             proofs,
         };
 
-        assert!(!tree.verify_proof(&proof));
+        assert!(!verify_proof(&proof));
     }
 
     #[test]
@@ -559,7 +508,7 @@ mod tests {
 
         let proof = tree.generate_proof("leaf4".to_string()).unwrap();
 
-        assert!(tree.verify_proof(&proof));
+        assert!(verify_proof(&proof));
     }
 
     #[test]
@@ -571,39 +520,10 @@ mod tests {
             "leaf4".to_string(),
         ];
         let mut tree = construct_merkle_tree(leafs);
-
-        let proof = tree.generate_proof("leaf3".to_string()).unwrap();
         tree.remove_element("leaf3".to_string());
 
-        assert!(!tree.verify_proof(&proof));
-    }
+        let proof = tree.generate_proof("leaf3".to_string());
 
-    #[test]
-    fn test_verify_proof_index_out_of_range() {
-        let leafs = vec![
-            "leaf1".to_string(),
-            "leaf2".to_string(),
-            "leaf3".to_string(),
-            "leaf4".to_string(),
-        ];
-
-        let tree = construct_merkle_tree(leafs);
-
-        let root = "89427e54728f5c7ec0aa205542861239c41f8b99404e383efeeef7ce752065e9".to_string();
-        let leaf = "ba620d61dac4ddf2d7905722b259b0bd34ec4d37c5796d9a22537c54b3f972d8".to_string();
-        let proofs = vec![
-            "036491cc10808eeb0ff717314df6f19ba2e232d04d5f039f6fa382cae41641da".to_string(),
-            "1263c6ae9a0abc50f3516d6f4c60fc4d42b3366c93210b63d12a135784ac7b83".to_string(),
-        ];
-        let index = 4;
-
-        let proof = Proof {
-            index,
-            proofs,
-            root,
-            leaf,
-        };
-
-        assert!(!tree.verify_proof(&proof));
+        assert_eq!(proof,Err(DataNotInTree{}))
     }
 }
