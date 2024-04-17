@@ -1,7 +1,4 @@
-use crate::merkle_tree::construct_merkle_tree;
-
-mod hasher;
-mod merkle_tree;
+use merkle_tree_lambda::merkle_tree::construct_merkle_tree;
 
 fn main() {
     let mut merkle_tree = construct_merkle_tree(vec!["leaf1".to_string(), "leaf2".to_string()]);

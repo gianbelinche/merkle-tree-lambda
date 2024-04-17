@@ -1,8 +1,8 @@
 build:
 	cargo build
 
-run:
-	cargo run
+example:
+	cargo run --example main
 
 test:
 	cargo test
