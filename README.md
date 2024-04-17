@@ -18,7 +18,16 @@ This Merkle Tree implements the following functionality:
 
 Run the following command to execute the tests:
 
-`cargo test`
+`make test`
+
+For formatting and lint run:
+
+`make lint`
+
+For an example run:
+
+`make example`
+
 
 ## References
 
